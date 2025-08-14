@@ -277,13 +277,9 @@ export function registerInventoryTools(server: McpServer, bot: any) {
 
         const itemId = itemsByName[itemName].id;
         
-        // Create the item object
-        const item = {
-          type: itemId,
-          count: Math.min(Math.max(count, 1), 64), // Ensure count is between 1 and 64
-          metadata: metadata,
-          nbt: null
-        };
+        // Create the item using bot's Item constructor
+        const Item = require('prismarine-item')(bot.version);
+        const item = new Item(itemId, Math.min(Math.max(count, 1), 64), metadata);
 
         await bot.creative.setInventorySlot(slot, item);
 
