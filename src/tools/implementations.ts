@@ -5,6 +5,7 @@ const { goals } = pathfinderPkg;
 import { Vec3 } from 'vec3';
 import minecraftData from 'minecraft-data';
 import mineflayer from 'mineflayer';
+import prismarineItem from 'prismarine-item';
 
 // ========== Type Definitions ==========
 
@@ -277,8 +278,8 @@ export function registerInventoryTools(server: McpServer, bot: any) {
 
         const itemId = itemsByName[itemName].id;
         
-        // Create the item using bot's Item constructor
-        const Item = require('prismarine-item')(bot.version);
+        // Create the item using prismarine-item
+        const Item = prismarineItem(bot.version);
         const item = new Item(itemId, Math.min(Math.max(count, 1), 64), metadata);
 
         await bot.creative.setInventorySlot(slot, item);
