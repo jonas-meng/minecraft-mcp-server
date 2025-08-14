@@ -8,6 +8,7 @@ import {
   registerFlightTools, 
   registerGameStateTools 
 } from './implementations.js';
+import { registerBuildingTools } from './building.js';
 
 export function createMcpServer(bot: any) {
   const server = new McpServer({
@@ -23,6 +24,7 @@ export function createMcpServer(bot: any) {
   registerChatTools(server, bot);
   registerFlightTools(server, bot);
   registerGameStateTools(server, bot);
+  registerBuildingTools(server, bot);
 
   return server;
 }
