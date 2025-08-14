@@ -4,8 +4,7 @@ import pathfinderPkg from 'mineflayer-pathfinder';
 const { goals } = pathfinderPkg;
 import { Vec3 } from 'vec3';
 import minecraftData from 'minecraft-data';
-import mineflayer from 'mineflayer';
-import prismarineItem from 'prismarine-item';
+import prismarineItemModule from 'prismarine-item';
 
 // ========== Type Definitions ==========
 
@@ -224,9 +223,9 @@ export function registerInventoryTools(server: McpServer, bot: any) {
       try {
         const mcData = minecraftData(bot.version);
         const itemsByName = mcData.itemsByName;
-        
+
         const searchLower = searchTerm.toLowerCase();
-        const matches = Object.keys(itemsByName).filter(name => 
+        const matches = Object.keys(itemsByName).filter(name =>
           name.toLowerCase().includes(searchLower)
         );
 
@@ -235,18 +234,18 @@ export function registerInventoryTools(server: McpServer, bot: any) {
         }
 
         let response = `Found ${matches.length} items matching "${searchTerm}":\n\n`;
-        
+
         // Group similar items for better readability
         const groupedMatches = matches.sort();
-        
+
         groupedMatches.slice(0, 30).forEach(match => {
           response += `- ${match}\n`;
         });
-        
+
         if (matches.length > 30) {
           response += `\n... and ${matches.length - 30} more items`;
         }
-        
+
         return createResponse(response);
       } catch (error) {
         return createErrorResponse(error as Error);
@@ -277,8 +276,10 @@ export function registerInventoryTools(server: McpServer, bot: any) {
         }
 
         const itemId = itemsByName[itemName].id;
-        
+
         // Create the item using prismarine-item
+        // @ts-ignore - TypeScript definition mismatch with actual module
+        const prismarineItem = prismarineItemModule.default || prismarineItemModule;
         const Item = prismarineItem(bot.version);
         const item = new Item(itemId, Math.min(Math.max(count, 1), 64), metadata);
 
@@ -486,22 +487,22 @@ export function registerFlightTools(server: McpServer, bot: any) {
       if (!bot.creative) {
         return createResponse("Creative mode is not available. Cannot fly.");
       }
-      
+
       const currentPos = bot.entity.position;
       console.error(`Flying from (${Math.floor(currentPos.x)}, ${Math.floor(currentPos.y)}, ${Math.floor(currentPos.z)}) to (${Math.floor(x)}, ${Math.floor(y)}, ${Math.floor(z)})`);
-  
+
       const controller = new AbortController();
       const FLIGHT_TIMEOUT_MS = 20000;
-      
+
       const timeoutId = setTimeout(() => {
         if (!controller.signal.aborted) {
           controller.abort();
         }
       }, FLIGHT_TIMEOUT_MS);
-      
+
       try {
         const destination = new Vec3(x, y, z);
-        
+
         await createCancellableFlightOperation(bot, destination, controller);
 
         return createResponse(`Successfully flew to position (${x}, ${y}, ${z}).`);
@@ -509,11 +510,11 @@ export function registerFlightTools(server: McpServer, bot: any) {
         if (controller.signal.aborted) {
           const currentPosAfterTimeout = bot.entity.position;
           return createErrorResponse(
-            `Flight timed out after ${FLIGHT_TIMEOUT_MS/1000} seconds. The destination may be unreachable. ` +
+            `Flight timed out after ${FLIGHT_TIMEOUT_MS / 1000} seconds. The destination may be unreachable. ` +
             `Current position: (${Math.floor(currentPosAfterTimeout.x)}, ${Math.floor(currentPosAfterTimeout.y)}, ${Math.floor(currentPosAfterTimeout.z)})`
           );
         }
-        
+
         console.error('Flight error:', error);
         return createErrorResponse(error as Error);
       } finally {
@@ -525,19 +526,19 @@ export function registerFlightTools(server: McpServer, bot: any) {
 }
 
 function createCancellableFlightOperation(
-  bot: any, 
-  destination: Vec3, 
+  bot: any,
+  destination: Vec3,
   controller: AbortController
 ): Promise<boolean> {
   return new Promise((resolve, reject) => {
     let aborted = false;
-    
+
     controller.signal.addEventListener('abort', () => {
       aborted = true;
       bot.creative.stopFlying();
       reject(new Error("Flight operation cancelled"));
     });
-    
+
     bot.creative.flyTo(destination)
       .then(() => {
         if (!aborted) {
