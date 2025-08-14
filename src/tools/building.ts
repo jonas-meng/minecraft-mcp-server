@@ -39,7 +39,7 @@ function createErrorResponse(error: Error | string): McpResponse {
 
 // ========== Building Helper Functions ==========
 
-async function placeBlockAt(bot: any, x: number, y: number, z: number, blockType: string): Promise<boolean> {
+async function placeBlockAt(bot: any, x: number, y: number, z: number, material?: string): Promise<boolean> {
   try {
     const placePos = new Vec3(x, y, z);
     const blockAtPos = bot.blockAt(placePos);
@@ -48,7 +48,18 @@ async function placeBlockAt(bot: any, x: number, y: number, z: number, blockType
       return false; // Block already exists
     }
 
-    // Try different faces for placing
+    // In creative mode, use creative.setBlock for direct placement
+    if (bot.creative && material) {
+      try {
+        await bot.creative.setBlock(placePos, material);
+        return true;
+      } catch (error) {
+        console.error(`Failed to set block with creative mode: ${error}`);
+        // Fall back to regular placement
+      }
+    }
+
+    // Regular placement (survival mode or fallback)
     const faces = [
       { direction: 'down', vector: new Vec3(0, -1, 0) },
       { direction: 'north', vector: new Vec3(0, 0, -1) },
@@ -63,12 +74,14 @@ async function placeBlockAt(bot: any, x: number, y: number, z: number, blockType
       const referenceBlock = bot.blockAt(referencePos);
 
       if (referenceBlock && referenceBlock.name !== 'air') {
-        if (!bot.canSeeBlock(referenceBlock)) {
-          const goal = new goals.GoalNear(referencePos.x, referencePos.y, referencePos.z, 2);
-          await bot.pathfinder.goto(goal);
+        // In creative mode, skip movement and visibility checks
+        if (!bot.creative) {
+          if (!bot.canSeeBlock(referenceBlock)) {
+            const goal = new goals.GoalNear(referencePos.x, referencePos.y, referencePos.z, 2);
+            await bot.pathfinder.goto(goal);
+          }
+          await bot.lookAt(placePos, true);
         }
-
-        await bot.lookAt(placePos, true);
 
         try {
           await bot.placeBlock(referenceBlock, face.vector.scaled(-1));
@@ -123,7 +136,7 @@ export function registerBuildingTools(server: McpServer, bot: any) {
               const y = startY + h;
               const z = startZ + (deltaZ * l) + (deltaX * t);
 
-              const success = await placeBlockAt(bot, x, y, z, material || 'default');
+              const success = await placeBlockAt(bot, x, y, z, material);
               if (success) {
                 blocksPlaced++;
               } else {
