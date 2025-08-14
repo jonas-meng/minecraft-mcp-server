@@ -214,11 +214,51 @@ export function registerInventoryTools(server: McpServer, bot: any) {
   );
 
   server.tool(
+    "lookup-item-names",
+    "Look up valid Minecraft item names from the game database",
+    {
+      searchTerm: z.string().describe("Search term to find item names in Minecraft (e.g., 'wood', 'stone', 'sword')")
+    },
+    async ({ searchTerm }): Promise<McpResponse> => {
+      try {
+        const mcData = minecraftData(bot.version);
+        const itemsByName = mcData.itemsByName;
+        
+        const searchLower = searchTerm.toLowerCase();
+        const matches = Object.keys(itemsByName).filter(name => 
+          name.toLowerCase().includes(searchLower)
+        );
+
+        if (matches.length === 0) {
+          return createResponse(`No items found matching "${searchTerm}"`);
+        }
+
+        let response = `Found ${matches.length} items matching "${searchTerm}":\n\n`;
+        
+        // Group similar items for better readability
+        const groupedMatches = matches.sort();
+        
+        groupedMatches.slice(0, 30).forEach(match => {
+          response += `- ${match}\n`;
+        });
+        
+        if (matches.length > 30) {
+          response += `\n... and ${matches.length - 30} more items`;
+        }
+        
+        return createResponse(response);
+      } catch (error) {
+        return createErrorResponse(error as Error);
+      }
+    }
+  );
+
+  server.tool(
     "set-inventory-slot",
     "Set an item in a specific inventory slot (creative mode only)",
     {
       slot: z.number().describe("Slot number to set the item in"),
-      itemName: z.string().describe("Name of the item to create (e.g., 'diamond', 'iron_sword')"),
+      itemName: z.string().describe("Exact name of the item to create (use lookup-item-names to find exact names)"),
       count: z.number().optional().describe("Number of items to create (default: 1, max: 64)"),
       metadata: z.number().optional().describe("Item metadata/damage value (default: 0)")
     },
@@ -232,7 +272,7 @@ export function registerInventoryTools(server: McpServer, bot: any) {
         const itemsByName = mcData.itemsByName;
 
         if (!itemsByName[itemName]) {
-          return createResponse(`Unknown item: ${itemName}`);
+          return createResponse(`Unknown item: "${itemName}". Use lookup-item-names to find the exact item name.`);
         }
 
         const itemId = itemsByName[itemName].id;
